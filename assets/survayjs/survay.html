@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SurveyJS in WebView</title>
+
+    <!-- React must load BEFORE Survey React UI -->
+    <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.development.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.development.js"></script>
+
+    <!-- SurveyJS core + styles (v1.x that matches v1 React UI) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/survey-core@1.12.55/defaultV2.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/survey-core@1.12.55/survey.core.min.js"></script>
+
+    <!-- OPTION A: React UI v1.x (global: SurveyReact) -->
+    <script src="https://cdn.jsdelivr.net/npm/survey-react@1.12.55/survey-react.min.js"></script>
+
+    <!-- OPTION B: If you prefer the newer package, uncomment these
+         (global: SurveyReactUI). Keep OPTION A commented then.
+    <script src="https://cdn.jsdelivr.net/npm/survey-react-ui@2.1.1/survey-react-ui.min.js"></script>
+    -->
+    <style>
+        html, body { height: 100%; margin: 0; background:#fff; }
+        #surveyContainer { min-height: 100%; box-sizing: border-box; padding: 16px; }
+    </style>
+</head>
+<body>
+<div id="surveyContainer"></div>
+
+<script>
+    // Bridge errors back to RN (and visible in Chrome console)
+    window.onerror = function(message, source, lineno, colno) {
+        console.error("Unhandled error:", message, source, lineno, colno);
+        try {
+            window.ReactNativeWebView?.postMessage(JSON.stringify({ type: "error", message, source, lineno, colno }));
+        } catch {}
+    };
+
+    // Detect whichever global exists (v1 vs v2)
+    const UI = window.SurveyReactUI || window.SurveyReact;
+
+    if (typeof window.Survey === "undefined") {
+        throw new Error("SurveyJS core (Survey) is not loaded.");
+    }
+    if (!UI) {
+        throw new Error("SurveyJS React UI global not found (SurveyReactUI or SurveyReact).");
+    }
+    if (!window.React || !window.ReactDOM) {
+        throw new Error("React/ReactDOM are not loaded.");
+    }
+
+    // Optional theme
+    try { window.Survey.StylesManager.applyTheme("defaultV2"); } catch {}
+
+    const surveyJson = {
+        title: "Demo",
+        elements: [
+            { type: "text", name: "email", title: "Your email:" },
+            { type: "rating", name: "satisfaction", title: "How satisfied are you?" }
+        ]
+    };
+
+    const survey = new window.Survey.Model(surveyJson);
+
+    survey.onComplete.add(sender => {
+        const payload = JSON.stringify(sender.data);
+        console.log("Survey complete:", payload);
+        try { window.ReactNativeWebView?.postMessage(payload); } catch {}
+    });
+
+    const container = document.getElementById("surveyContainer");
+    const element = window.React.createElement(UI.Survey, { model: survey });
+
+    if (window.ReactDOM.createRoot) {
+        window.ReactDOM.createRoot(container).render(element);
+    } else {
+        window.ReactDOM.render(element, container);
+    }
+</script>
+</body>
+</html>
