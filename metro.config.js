@@ -3,8 +3,7 @@ const { withNativeWind } = require("nativewind/metro");
 
 const config = getDefaultConfig(__dirname);
 
-module.exports = withNativeWind(config, { input: "./app/global.css" });
 // Tell Metro that .html is an asset we want to bundle
 config.resolver.assetExts = [...config.resolver.assetExts, 'html'];
 
-module.exports = config;
+module.exports = withNativeWind(config, { input: "./app/global.css" });
